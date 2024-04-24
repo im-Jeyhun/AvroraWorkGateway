@@ -1,0 +1,103 @@
+{
+  "Routes": [
+    {
+      //clientdan gelen sorgunun gateway terefinden alindiqdan sonra yonlendirilecek olan service-in route-u
+      "DownstreamPathTemplate": "/api/User/get-user",
+      "DownstreamScheme": "http",
+      //clientdan gelen sorgunun gateway terefinden alindiqdan sonra yonlendirilecek olan service-in host ve portu
+      //Birden cox server uzerinde qaldirma load balancing etmek ucun istifade olunur.
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        },
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      //load balance configurasiyalari.
+      "LoadBalancerOptions": {
+      //type load balancerin hansi algoritmani istifade edceyeni bildirir.
+        "Type": "CookieStickySessions",
+        "Key": "ASP.NET_SessionId",
+        "Expiry": 1800000
+      },
+      //clientdan atilan gateway routu (burani umumi olaraq bir controllerede baglamaq olar , ve ya spesifik bir methodada)
+      //umumi olaraq bir controllere bagladiqa http method keywordlarina gore tapir muvafiq routu
+      //meselen asagidikina nezer salsaq gorerik ki umumi user controllerine baglidir ve icerisinde sadece 2 eded method ucun sorgu qapisi qoyulub
+      //yeni buraya sorgunu post methodu ile atsaq , gateway terefden hemin controllerin icindeki post methodunu istifade eden
+      //methoda yonlendirme edilecek hisse ve onun methodlari
+      "UpstreamPathTemplate": "/api/avrorawork/user",
+      "UpstreamHttpMethod": [ "Get", "Post" ],
+      //1.Cache-in omrunu belirten paramater. 2.Region cache adlandirmasi
+      "FileCacheOptions": {
+        "TtlSeconds": 30,
+        "Region": "mycache"
+      },
+      "RateLimitOptions": {
+        //rate limitin tedbiq olunmayacagi clienlari gire bilirik
+        "ClientWhitelist": [],
+        "EnableRateLimiting": true,
+        //nece saniyeden bir sorgu atila bilsin
+        "Period": "10s",
+        //mueyyen bir saniyeden sonra nece defe sorgu  ata bileceyimiz paramatr
+        "PeriodTimespan": 1,
+        //clientin ata bileceyi max sorgu sayi
+        "Limit": 1
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/Procces",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+      ],
+
+      "UpstreamPathTemplate": "/api/avrorawork/esd",
+      "UpstreamHttpMethod": [ "Get" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "TestKey",
+        "AllowedScopes": []
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/Auths",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/avrorawork/auth",
+      "UpstreamHttpMethod": [ "Get" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5000
+        }
+      ],
+      "UpstreamPathTemplate": "/api/{everything}",
+      "UpstreamHttpMethod": [ "Get" ],
+      "DownstreamHttpMethod": [ "Get" ]
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "https://localhost:5005",
+    "RateLimitOptions": {
+      "DisableRateLimitHeaders": false,
+      //Default rate limit error message
+      "QuotaExceededMessage": "Heddinden artiq sorgu",
+      "HttpStatusCode": 404,
+      "ClientIdHeader": "Test"
+    }
+  }
+}
